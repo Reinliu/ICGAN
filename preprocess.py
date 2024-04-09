@@ -81,22 +81,14 @@ def mel_spectrogram(y, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin,
     return spec
 
 def extract_loudness(signal, sampling_rate, block_size, n_fft=2048):
-    S = librosa.stft(
-        signal,
-        n_fft=n_fft,
-        hop_length=block_size,
-        win_length=n_fft,
-        center=True,
-    )
-    S = np.log(abs(S) + 1e-7)
+    S = librosa.stft(signal, n_fft=n_fft, hop_length=block_size, win_length=n_fft, center=True)
+    magnitude_spectrum = np.abs(S)
     f = librosa.fft_frequencies(sr=sampling_rate, n_fft=n_fft)
     a_weight = librosa.A_weighting(f)
-
-    S = S + a_weight.reshape(-1, 1)
-
-    S = np.mean(S, 0)[..., :-1]
-
-    return S
+    a_weight_linear = librosa.db_to_amplitude(a_weight)
+    weighted_magnitude_spectrum = magnitude_spectrum * a_weight_linear.reshape(-1, 1)
+    rms_envelope = np.sqrt(np.mean(np.square(weighted_magnitude_spectrum), axis=0))
+    return rms_envelope
 
 def preprocess_audio(f, n_fft, n_mels, sampling_rate, hop_size, win_size, signal_length, device, oneshot):
     s, _ = librosa.load(f, sr=sampling_rate)
