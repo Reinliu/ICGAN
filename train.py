@@ -147,10 +147,10 @@ def train(out_dir, save_path, path_name):
 
                 target_mean = torch.nn.functional.one_hot(labels, num_classes=n_classes)
                 # Regularization loss (KLD)
-                kld_loss = torch.sum((gen_mean - target_mean) ** 2) / 2
+                kld_loss = torch.sum(-torch.log(sigma_t) + (var_t + (mu_t - mu_r)**2) / 2 - 0.5)
+                # kld_loss = torch.sum((gen_mean - target_mean) ** 2) / 2
                 writer.add_scalar('Loss/KLD loss', kld_loss, epoch * len(dataloader) + i)
-                # fake_loudness = utils.approximate_loudness_from_batch_melspec(fake_imgs, h.samplerate, h.n_fft, h.fmin, h.fmax, h.n_mels)
-                # mse_loss = h.mse_weight * mse_loss_fn(fake_loudness, loudness)
+
                 total_loss = g_loss + kld_loss
                 total_loss.backward()
                 optimizer_G.step()
