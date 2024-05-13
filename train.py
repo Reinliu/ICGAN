@@ -48,27 +48,6 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=h.lr, betas=(h.b1,
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
-
-def sample_image(n_row, loudness, batches_done):
-    """Saves a grid of generated digits ranging from 0 to n_classes"""
-    # Sample noise
-    z = torch.randn(n_row ** 2, seq_len, h.latent_dim, device=device)
-    # Get labels ranging from 0 to n_classes for n rows
-    labels = np.array([num for _ in range(n_row) for num in range(n_row)])
-    with torch.no_grad():
-        labels = LongTensor(labels)
-        gen_imgs = generator(z, loudness, labels)
-    save_image(gen_imgs.data, "images/%d.png" % batches_done, nrow=n_row, normalize=True)
-    
-def generate_conditional_vectors(batch_labels, std_dev=1.0):
-    # Retrieve the target means for each class in the batch
-    target_means = class_mean_embedding(batch_labels).squeeze()
-    
-    # Sample from Gaussian using these means
-    conditional_vectors = torch.normal(mean=target_means, std=std_dev)
-    return conditional_vectors
-
-
 def compute_gradient_penalty(D, real_samples, fake_samples, labels):
     """Calculates the gradient penalty loss for WGAN GP.
        Warning: It doesn't compute the gradient w.r.t the labels, only w.r.t
@@ -154,8 +133,6 @@ def train(out_dir, save_path, path_name):
                 optimizer_G.step()
 
                 if batches_done % h.sample_interval == 0:
-                    # sample_image(n_classes, loudness, batches_done)
-                    # save_image(fake_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
                     print(
                     "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"# [AD loss: %f]"
                     % (epoch, h.n_epochs, i, len(dataloader), d_loss.item(), total_loss.item())
