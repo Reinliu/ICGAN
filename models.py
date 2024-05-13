@@ -107,7 +107,5 @@ class Discriminator(nn.Module):
         labels = labels.view(labels.size(0), 1, seq_len, freq_res)
         # Concatenate label and image
         d_in = torch.cat((img, labels), 1) # Concatenate along channel dimension
-        print(d_in.shape)
         output = self.model(d_in)
-        print(output.shape)
         return output
