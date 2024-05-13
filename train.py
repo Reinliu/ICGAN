@@ -5,7 +5,7 @@ import json
 import torch
 import torch.autograd as autograd
 from torchvision.utils import save_image
-from models import SpectrogramGenerator, Discriminator
+from beta_model import SpectrogramGenerator, Discriminator
 from hifigan.__init__ import AttrDict
 from torch.utils.tensorboard import SummaryWriter
 import utils
@@ -139,7 +139,7 @@ def train(out_dir, save_path, path_name):
             if i % h.n_critic == 0:
 
                 # Generate a batch of images
-                fake_imgs, gen_mean = generator(z, loudness, real_imgs)
+                fake_imgs, gen_mean, gen_var = generator(z, loudness, real_imgs)
                 # Train on fake images
                 fake_validity = discriminator(fake_imgs, labels)
                 g_loss = -torch.mean(fake_validity)
@@ -147,10 +147,8 @@ def train(out_dir, save_path, path_name):
 
                 target_mean = torch.nn.functional.one_hot(labels, num_classes=n_classes)
                 # Regularization loss (KLD)
-                kld_loss = torch.sum(-torch.log(sigma_t) + (var_t + (mu_t - mu_r)**2) / 2 - 0.5)
-                # kld_loss = torch.sum((gen_mean - target_mean) ** 2) / 2
+                kld_loss = torch.sum(-torch.log(torch.sqrt(gen_var)) + (gen_var + (gen_mean - target_mean)**2) / 2 - 0.5)
                 writer.add_scalar('Loss/KLD loss', kld_loss, epoch * len(dataloader) + i)
-
                 total_loss = g_loss + kld_loss
                 total_loss.backward()
                 optimizer_G.step()
