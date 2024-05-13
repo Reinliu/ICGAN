@@ -21,7 +21,8 @@ class FeatureExtractor(nn.Module):
         x = self.pool(F.relu(self.conv3(x)))  # shape: [batch, 64, seq_len/8, freq_bins/8]
         x = self.flatten(x)  # Flatten the tensor
         class_means = self.fc(x)  # shape: [batch, n_classes]
-        return class_means
+        class_var = self.fc(x)
+        return class_means, class_var
     
 
 class SpectrogramGenerator(nn.Module):
@@ -51,13 +52,14 @@ class SpectrogramGenerator(nn.Module):
         seq_len = loudness.size(1)
     
         if Melspec is not None:
-            mean_extracted = self.FeatureExtractor(Melspec)
-            con_vec = torch.normal(mean=mean_extracted, std=1)
+            mean_extracted, var_extracted = self.FeatureExtractor(Melspec)
+            con_vec = torch.normal(mean=mean_extracted, std=var_extracted)
             #con_vec = torch.clip(con_vec, min=0, max=1)
         elif con_vec is None:
             raise ValueError("Either Melspec or con_vec must be provided")
         else:
             mean_extracted = None
+            var_extracted = None
 
         gamma = self.gamma_layer(con_vec)  # shape: (batch, latent_dim)
         beta = self.beta_layer(con_vec)    # shape: (batch, latent_dim)
@@ -75,7 +77,7 @@ class SpectrogramGenerator(nn.Module):
         output_seq = self.fc_out(rnn_out.contiguous().view(-1, self.hidden_dim))
         spectrogram = output_seq.view(-1, 1, seq_len, freq_res)
 
-        return spectrogram, mean_extracted
+        return spectrogram, mean_extracted, var_extracted
 
 
 class Discriminator(nn.Module):
