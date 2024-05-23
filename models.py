@@ -35,9 +35,6 @@ class SpectrogramGenerator(nn.Module):
         self.gamma_layer = nn.Linear(n_classes, latent_dim)
         self.beta_layer = nn.Linear(n_classes, latent_dim)
         self.FeatureExtractor = FeatureExtractor(freq_bins=64, n_classes=n_classes, seq_len=seq_len)
-        # self.class_means = nn.Parameter(torch.randn(n_classes))
-        # self.class_mean_embedding = nn.Embedding(n_classes, 1)
-        # self.class_mean_embedding.weight.data.fill_(1.0)
         
         # If using a single latent vector, expand it to match the sequence length
         self.fc_init = nn.Linear(latent_dim + loudness_dim, hidden_dim)
