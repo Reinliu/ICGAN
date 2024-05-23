@@ -48,6 +48,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=h.lr, betas=(h.b1,
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
+
 def compute_gradient_penalty(D, real_samples, fake_samples, labels):
     """Calculates the gradient penalty loss for WGAN GP.
        Warning: It doesn't compute the gradient w.r.t the labels, only w.r.t
@@ -118,7 +119,7 @@ def train(out_dir, save_path, path_name):
             if i % h.n_critic == 0:
 
                 # Generate a batch of images
-                fake_imgs, gen_mean, gen_var = generator(z, loudness, real_imgs)
+                fake_imgs, gen_mean, logvar = generator(z, loudness, real_imgs)
                 # Train on fake images
                 fake_validity = discriminator(fake_imgs, labels)
                 g_loss = -torch.mean(fake_validity)
@@ -126,7 +127,7 @@ def train(out_dir, save_path, path_name):
 
                 target_mean = torch.nn.functional.one_hot(labels, num_classes=n_classes)
                 # Regularization loss (KLD)
-                kld_loss = torch.sum(-torch.log(torch.sqrt(gen_var)) + (gen_var + (gen_mean - target_mean)**2) / 2 - 0.5)
+                kld_loss = -0.5 * torch.sum(1 + logvar - ((gen_mean - target_mean) ** 2) - logvar.exp())
                 writer.add_scalar('Loss/KLD loss', kld_loss, epoch * len(dataloader) + i)
                 total_loss = g_loss + kld_loss
                 total_loss.backward()
